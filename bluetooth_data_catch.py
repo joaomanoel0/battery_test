@@ -1,14 +1,14 @@
 import asyncio
 import datetime
-from bleak import BleakClient
+from bleak import BleakClient, BleakScanner
 import csv
 import os
 
-DEVICE_ADDRESS = "DC:2C:48:D2:71:6B"  # Endereço do dispositivo
+DEVICE_ADDRESS = "C1:68:B6:D7:F5:C0"  # Endereço do dispositivo
 CHARACTERISTIC_UUID_PERCENT =   "00002a19-0000-1000-8000-00805f9b34fb" 
 CHARACTERISTIC_UUID_TENSAO =    "0000aa22-0000-1000-8000-00805f9b34fb"
 CHARACTERISTIC_UUID_CORRENTE =  "0000aa33-0000-1000-8000-00805f9b34fb"
-CSV_FILE = "bateryAnalisys.csv"
+CSV_FILE = "bateryAnalisys_v3.csv"
 
 async def read_sensor():
     async with BleakClient(DEVICE_ADDRESS) as client:
@@ -27,30 +27,36 @@ async def read_sensor():
                 while True:
                     try:
                         percent = await client.read_gatt_char(CHARACTERISTIC_UUID_PERCENT)
-                        # print("percent: ",percent)
+                        await asyncio.sleep(2)
                         corrente = await client.read_gatt_char(CHARACTERISTIC_UUID_CORRENTE)
-                        # print("corrente: ",corrente)
+                        await asyncio.sleep(2)
                         tensao = await client.read_gatt_char(CHARACTERISTIC_UUID_TENSAO)
+                        await asyncio.sleep(2)
 
-                        # print(f"Percent: {percent}, Corrente: {corrente}, Tensão: {tensao}")
+                        # RSSI (potência do sinal)
+                        try:
+                            adv_dev = await BleakScanner.find_device_by_address(
+                                DEVICE_ADDRESS, timeout=5.0
+                            )
+                            rssi_dbm = adv_dev.rssi if adv_dev else None
+                        except Exception as e:
+                            print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Erro ao obter RSSI: {e}")
+                            rssi_dbm = None
 
                         valor_tensao = int.from_bytes(tensao, byteorder="little", signed=True)
                         valor_corrente = int.from_bytes(corrente, byteorder="little", signed=True)
                         valor_percent = int.from_bytes(percent, byteorder="little", signed=True)
-
-                        # Captura o timestamp atual
+                        
                         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        print(f"{timestamp} | Valor: {valor_percent} | Tensão: {valor_tensao} | Corrente: {valor_corrente}")
+                        print(f"{timestamp} | Valor: {valor_percent} | Tensão: {valor_tensao} | Corrente: {valor_corrente} | RSSI: {rssi_dbm}")
 
-                        # Escreve a linha no CSV
-                        # writer.writerow([timestamp, valor_percent])
-                        writer.writerow([timestamp, valor_percent, valor_tensao, valor_corrente])
+                        writer.writerow([timestamp, valor_percent, valor_tensao, valor_corrente, rssi_dbm])
                         file.flush()
 
                     except Exception as e:
                         print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Erro na leitura: {e}")
 
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(20)
         else:
             print("Não foi possível conectar ao sensor.")
             return
