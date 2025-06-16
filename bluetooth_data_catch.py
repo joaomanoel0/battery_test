@@ -34,23 +34,23 @@ async def read_sensor():
                         await asyncio.sleep(2)
 
                         # RSSI (potência do sinal)
-                        try:
-                            adv_dev = await BleakScanner.find_device_by_address(
-                                DEVICE_ADDRESS, timeout=5.0
-                            )
-                            rssi_dbm = adv_dev.rssi if adv_dev else None
-                        except Exception as e:
-                            print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Erro ao obter RSSI: {e}")
-                            rssi_dbm = None
+                        # try:
+                        #     adv_dev = await BleakScanner.find_device_by_address(
+                        #         DEVICE_ADDRESS, timeout=5.0
+                        #     )
+                        #     rssi_dbm = adv_dev.rssi if adv_dev else None
+                        # except Exception as e:
+                        #     print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Erro ao obter RSSI: {e}")
+                        #     rssi_dbm = None
 
                         valor_tensao = int.from_bytes(tensao, byteorder="little", signed=True)
                         valor_corrente = int.from_bytes(corrente, byteorder="little", signed=True)
                         valor_percent = int.from_bytes(percent, byteorder="little", signed=True)
                         
                         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        print(f"{timestamp} | Valor: {valor_percent} | Tensão: {valor_tensao} | Corrente: {valor_corrente} | RSSI: {rssi_dbm}")
+                        print(f"{timestamp} | Valor: {valor_percent} | Tensão: {valor_tensao} | Corrente: {valor_corrente}")
 
-                        writer.writerow([timestamp, valor_percent, valor_tensao, valor_corrente, rssi_dbm])
+                        writer.writerow([timestamp, valor_percent, valor_tensao, valor_corrente])
                         file.flush()
 
                     except Exception as e:
